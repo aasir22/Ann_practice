@@ -16,5 +16,7 @@ def tensor_logs(abs_path,X_train):
     with  file_writter.as_default():
         images = np.reshape(X_train,(-1,28,28,1))
         tf.summary.image("Hand writting digits sample",images,max_outputs=20,step=0)
+    
+    
 
 

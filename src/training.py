@@ -7,6 +7,7 @@ from src.utils.tensor_logs import unique_path,tensor_logs
 import argparse
 
 
+
 def training(config_path):
 
     config = get_config(config_path)
@@ -30,19 +31,35 @@ def training(config_path):
     tensorboard_cb = tf.keras.callbacks.TensorBoard(tensor_path)
     early_stop_cb = tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
     os.makedirs('checkpoint/models',exist_ok = True)
-    CKPT_path = "checkpoint/models/model_ckpt.h5"
+    CKPT_path="checkpoint/models/weights-improvement-{epoch:02d}.h5"
+    # CKPT_path = "checkpoint/models/model_ckpt.h5"
     model_checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(CKPT_path,epoch = 5)
     CALLBACK = [tensorboard_cb,early_stop_cb,model_checkpoint_cb]
 
-    history = model_clf.fit(X_train, y_train,epochs = EPOCH, callbacks=CALLBACK, validation_data = val_set)
-
-    artifact_dir = config['artifacts']['artifacts_dir']
-    model_dir  = config['artifacts']['model_dir']
-    path = os.path.join(artifact_dir,model_dir)
-    os.makedirs(path,exist_ok=True)
-    model_name = config['artifacts']['model_name']
+    if len(os.listdir('checkpoint/models')) == 0:
+        history = model_clf.fit(X_train, y_train,epochs = EPOCH, callbacks=CALLBACK, validation_data = val_set)
+        artifact_dir = config['artifacts']['artifacts_dir']
+        model_dir  = config['artifacts']['model_dir']
+        path = os.path.join(artifact_dir,model_dir)
+        os.makedirs(path,exist_ok=True)
+        model_name = config['artifacts']['model_name']
     
-    save_model(model_clf,model_name,path)
+        save_model(model_clf,model_name,path)
+    else:
+        ckpt_dir_path = 'checkpoint/models'
+        ckpt_model_path = os.listdir(ckpt_dir_path)[-1]
+        ckpt_full_path = os.path.join(ckpt_dir_path,ckpt_model_path)
+        ckpt_model = tf.keras.models.load_model(ckpt_full_path)
+        # for file in CKPT_path[:-1]
+
+        history = ckpt_model.fit(X_train, y_train,epochs = EPOCH, callbacks=CALLBACK, validation_data = val_set)
+
+        artifact_dir = config['artifacts']['artifacts_dir']
+        model_dir  = config['artifacts']['model_dir']
+        path = os.path.join(artifact_dir,model_dir)
+        os.makedirs(path,exist_ok=True)
+        model_name = config['artifacts']['model_name']
+        save_model(ckpt_model,model_name,path)
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser()
@@ -50,6 +67,7 @@ if __name__ == '__main__':
     args.add_argument("--config", "-c", default="config.yaml")
 
     parsed_args = args.parse_args()
-    
 
     training(config_path=parsed_args.config)
+    # tf.tensorboard --'config'='./logs' --'port'=6006
+   
